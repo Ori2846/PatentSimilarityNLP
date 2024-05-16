@@ -14,7 +14,8 @@ Web Interface: Provides a user-friendly interface built with Flask for inputting
 
 ![image](https://github.com/Ori2846/PatentSimilarityNLP/assets/74078771/3173afcf-1d9d-4fa1-80bf-c6b7cd7e08e9)
 
-![Untitled](https://github.com/Ori2846/PatentSimilarityNLP/assets/74078771/e9521446-3599-4778-9923-8120394b999b)
+![image](https://github.com/Ori2846/PatentSimilarityNLP/assets/74078771/1a8e4426-c5af-4c45-bd39-a11184f9dcc3)
+
 
 
 Technologies Used
