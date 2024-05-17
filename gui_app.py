@@ -32,12 +32,19 @@ class PatentSimilarityGUI:
 
     def run_flask_app(self):
         app = PatentSimilarityApp()
-        initial_patent_numbers = ['US11888042B2', 'US8765432B2']
+        initial_patent_numbers = [
+            'US11888042B2', 'US8765432B2', 'US10101010B1', 'US20200123456A1',
+            'US9001234B2', 'US9876543B2', 'US5555555A', 'US4444444B2', 'US3333333B2',
+            'US2222222B1', 'US1111111A', 'US6666666B2', 'US7777777B2', 'US8888888B2',
+            'US9999999B2', 'US1234567A', 'US2345678B1', 'US3456789B2', 'US4567890A',
+            'US5678901B2', 'US6789012A', 'US7890123B1', 'US8901234B2', 'US9012345A',
+            'US0123456B1', 'US1357911B2'
+        ]
         for pn in initial_patent_numbers:
             data = app.fetch_patent_data(pn)
             if data:
                 app.save_patent_data(data)
-        app.run()
+        app.run(debug=False)
 
     def check_similarity(self):
         abstract_text = self.text_area.get("1.0", tk.END).strip()
@@ -57,9 +64,12 @@ class PatentSimilarityGUI:
     def display_results(self, similarities):
         self.result_area.config(state='normal')
         self.result_area.delete("1.0", tk.END)
-        for similarity in similarities:
-            result_text = f"Patent Number: {similarity['patent_number']}\nSimilarity: {similarity['similarity']:.4f}\n\n"
-            self.result_area.insert(tk.END, result_text)
+        if similarities:
+            for similarity in similarities:
+                result_text = f"Patent Number: {similarity['patent_number']}\nSimilarity: {similarity['similarity']:.4f}\n\n"
+                self.result_area.insert(tk.END, result_text)
+        else:
+            self.result_area.insert(tk.END, "No similar patents found.")
         self.result_area.config(state='disabled')
 
 

@@ -11,7 +11,6 @@ logging.basicConfig(level=logging.INFO)
 
 bert_model = SentenceTransformer('all-MiniLM-L6-v2')
 
-
 def cosine_similarity_manual(vec1, vec2):
     dot_product = sum(v1 * v2 for v1, v2 in zip(vec1, vec2))
     magnitude_vec1 = math.sqrt(sum(v ** 2 for v in vec1))
@@ -20,53 +19,11 @@ def cosine_similarity_manual(vec1, vec2):
         return 0.0
     return dot_product / (magnitude_vec1 * magnitude_vec2)
 
-
 class PatentSimilarityApp:
     def __init__(self, db_path='patents.db'):
         self.app = Flask(__name__)
         self.db_path = db_path
-        self.init_db()
         self.setup_routes()
-
-    def init_db(self):
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS patents (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                number TEXT UNIQUE,
-                title TEXT,
-                abstract TEXT,
-                claims TEXT
-            )
-        ''')
-        conn.commit()
-        conn.close()
-
-    def fetch_patent_data(self, patent_number):
-        url = f"https://patents.google.com/patent/{patent_number}/en"
-        try:
-            response = requests.get(url)
-            response.raise_for_status()
-            soup = BeautifulSoup(response.content, 'html.parser')
-            title = soup.find('span', itemprop='title').text if soup.find('span', itemprop='title') else ''
-            abstract = soup.find('div', class_='abstract').text if soup.find('div', class_='abstract') else ''
-            claims = soup.find('div', class_='claims').text if soup.find('div', class_='claims') else ''
-            logging.info(f"Fetched data for {patent_number}: Title: {title}, Abstract: {abstract}, Claims: {claims}")
-            return {'number': patent_number, 'title': title, 'abstract': abstract, 'claims': claims}
-        except requests.RequestException as e:
-            logging.error(f"Error fetching data for {patent_number}: {e}")
-            return None
-
-    def save_patent_data(self, patent_data):
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        cursor.execute('''
-            INSERT OR IGNORE INTO patents (number, title, abstract, claims)
-            VALUES (?, ?, ?, ?)
-        ''', (patent_data['number'], patent_data['title'], patent_data['abstract'], patent_data['claims']))
-        conn.commit()
-        conn.close()
 
     def get_patent_data(self):
         conn = sqlite3.connect(self.db_path)
@@ -121,12 +78,6 @@ class PatentSimilarityApp:
     def run(self, debug=True):
         self.app.run(debug=debug)
 
-
 if __name__ == '__main__':
     app = PatentSimilarityApp()
-    initial_patent_numbers = ['US11888042B2', 'US8765432B2']
-    for pn in initial_patent_numbers:
-        data = app.fetch_patent_data(pn)
-        if data:
-            app.save_patent_data(data)
     app.run()
