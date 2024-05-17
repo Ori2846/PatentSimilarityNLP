@@ -1,15 +1,24 @@
 import requests
 from bs4 import BeautifulSoup
-from sklearn.metrics.pairwise import cosine_similarity
 from flask import Flask, request, jsonify, render_template_string
 import logging
 from sentence_transformers import SentenceTransformer
 import sqlite3
 import re
+import math
 
 logging.basicConfig(level=logging.INFO)
 
 bert_model = SentenceTransformer('all-MiniLM-L6-v2')
+
+
+def cosine_similarity_manual(vec1, vec2):
+    dot_product = sum(v1 * v2 for v1, v2 in zip(vec1, vec2))
+    magnitude_vec1 = math.sqrt(sum(v ** 2 for v in vec1))
+    magnitude_vec2 = math.sqrt(sum(v ** 2 for v in vec2))
+    if not magnitude_vec1 or not magnitude_vec2:
+        return 0.0
+    return dot_product / (magnitude_vec1 * magnitude_vec2)
 
 
 class PatentSimilarityApp:
@@ -68,16 +77,17 @@ class PatentSimilarityApp:
         return [{'number': row[0], 'title': row[1], 'abstract': row[2], 'claims': row[3]} for row in rows]
 
     def preprocess_text(self, text):
-        # Convert to lowercase
         text = text.lower()
-        # Remove non-alphabetic characters
         text = re.sub(r'[^a-z\s]', '', text)
-        # Tokenize text
         tokens = text.split()
-        # Lemmatize tokens (simple lemmatization, only stripping plural form for demonstration)
         lemmas = [token.rstrip('s') for token in tokens]
-        # Remove stop words
-        stop_words = set(['a', 'an', 'the', 'and', 'or', 'but', 'if', 'is', 'are', 'was', 'were', 'in', 'on', 'at', 'of', 'for', 'with', 'about', 'against', 'between', 'into', 'through', 'during', 'before', 'after', 'above', 'below', 'to', 'from', 'up', 'down', 'over', 'under', 'again', 'further', 'then', 'once', 'here', 'there', 'when', 'where', 'why', 'how', 'all', 'any', 'both', 'each', 'few', 'more', 'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very', 's', 't', 'can', 'will', 'just', 'don', 'should', 'now'])
+        stop_words = set(
+            ['a', 'an', 'the', 'and', 'or', 'but', 'if', 'is', 'are', 'was', 'were', 'in', 'on', 'at', 'of', 'for',
+             'with', 'about', 'against', 'between', 'into', 'through', 'during', 'before', 'after', 'above', 'below',
+             'to', 'from', 'up', 'down', 'over', 'under', 'again', 'further', 'then', 'once', 'here', 'there', 'when',
+             'where', 'why', 'how', 'all', 'any', 'both', 'each', 'few', 'more', 'most', 'other', 'some', 'such', 'no',
+             'nor', 'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very', 's', 't', 'can', 'will', 'just', 'don',
+             'should', 'now'])
         filtered_lemmas = [lemma for lemma in lemmas if lemma not in stop_words]
         processed_text = ' '.join(filtered_lemmas)
         logging.info(f"Processed text: {processed_text}")
@@ -99,9 +109,11 @@ class PatentSimilarityApp:
             patents = self.get_patent_data()
             patent_abstracts = [patent['abstract'] for patent in patents]
             patent_vecs = bert_model.encode(patent_abstracts)
-            similarities = cosine_similarity(query_vec, patent_vecs)
 
-            response = [{'patent_number': patents[i]['number'], 'similarity': float(sim)} for i, sim in enumerate(similarities[0])]
+            similarities = [cosine_similarity_manual(query_vec[0], patent_vec) for patent_vec in patent_vecs]
+
+            response = [{'patent_number': patents[i]['number'], 'similarity': float(sim)} for i, sim in
+                        enumerate(similarities)]
             response = sorted(response, key=lambda x: x['similarity'], reverse=True)
             logging.info(f"Similarities: {response}")
             return jsonify(response)
