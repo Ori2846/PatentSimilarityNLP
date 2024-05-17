@@ -1,15 +1,14 @@
 import requests
 from bs4 import BeautifulSoup
-import spacy
 from sklearn.metrics.pairwise import cosine_similarity
 from flask import Flask, request, jsonify, render_template_string
 import logging
 from sentence_transformers import SentenceTransformer
 import sqlite3
+import re
 
 logging.basicConfig(level=logging.INFO)
 
-nlp = spacy.load('en_core_web_sm')
 bert_model = SentenceTransformer('all-MiniLM-L6-v2')
 
 
@@ -69,9 +68,18 @@ class PatentSimilarityApp:
         return [{'number': row[0], 'title': row[1], 'abstract': row[2], 'claims': row[3]} for row in rows]
 
     def preprocess_text(self, text):
-        doc = nlp(text)
-        tokens = [token.lemma_ for token in doc if not token.is_stop and token.is_alpha]
-        processed_text = ' '.join(tokens)
+        # Convert to lowercase
+        text = text.lower()
+        # Remove non-alphabetic characters
+        text = re.sub(r'[^a-z\s]', '', text)
+        # Tokenize text
+        tokens = text.split()
+        # Lemmatize tokens (simple lemmatization, only stripping plural form for demonstration)
+        lemmas = [token.rstrip('s') for token in tokens]
+        # Remove stop words
+        stop_words = set(['a', 'an', 'the', 'and', 'or', 'but', 'if', 'is', 'are', 'was', 'were', 'in', 'on', 'at', 'of', 'for', 'with', 'about', 'against', 'between', 'into', 'through', 'during', 'before', 'after', 'above', 'below', 'to', 'from', 'up', 'down', 'over', 'under', 'again', 'further', 'then', 'once', 'here', 'there', 'when', 'where', 'why', 'how', 'all', 'any', 'both', 'each', 'few', 'more', 'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very', 's', 't', 'can', 'will', 'just', 'don', 'should', 'now'])
+        filtered_lemmas = [lemma for lemma in lemmas if lemma not in stop_words]
+        processed_text = ' '.join(filtered_lemmas)
         logging.info(f"Processed text: {processed_text}")
         return processed_text
 
